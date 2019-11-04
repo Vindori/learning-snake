@@ -104,7 +104,7 @@ def main():
 	closed = False
 	gameover = False
 
-	apple = [random.randint(0, blocks[0]), random.randint(0, blocks[1])]
+	apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
 	snake = Snake()
 	while not gameover and not closed:
 		for event in pygame.event.get():
@@ -119,8 +119,9 @@ def main():
 
 		moves.append(snake.direction)
 		screen.fill(black)
+		print(apple)
 		if snake.move(apple):
-			apple = [random.randint(0, blocks[0]), random.randint(0, blocks[1])]  
+			apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]  
 		fill_block(screen, *apple, (255, 0, 0))
 		snake.draw_tail(screen)
 		if snake.is_collided():
@@ -140,7 +141,6 @@ def emulate_game(data):
 	apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
 	snake = Snake()
 	while not gameover and not closed and i < len(data['moves']):
-
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				closed = True
@@ -164,4 +164,4 @@ def emulate_game(data):
 if __name__ == '__main__':
 	data = main()
 	store_game(data)
-	emulate_game(data)
+	# emulate_game(data)
