@@ -119,7 +119,6 @@ def main():
 
 		moves.append(snake.direction)
 		screen.fill(black)
-		print(apple)
 		if snake.move(apple):
 			apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]  
 		fill_block(screen, *apple, (255, 0, 0))
