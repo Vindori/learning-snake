@@ -49,6 +49,10 @@ def store_game(data):
 	json.dump(data, open(filepath, 'w'))
 	print(f'Stored in {filepath}')
 
+def load_game(name):
+	filepath = os.path.join(path, name)
+	return json.load(open(filepath, 'r'))
+
 class Snake():
 	def __init__(self, length=4, head=[blocks[0] // 2, blocks[1] // 2], direction=1):
 		self.length = length	
