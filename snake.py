@@ -133,7 +133,7 @@ def emulate_game(data):
 	closed = False
 	gameover = False
 	i = 0
-	apple = [random.randint(0, blocks[0]), random.randint(0, blocks[1])]
+	apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
 	snake = Snake()
 	while not gameover and not closed and i < len(data['moves']):
 
@@ -146,7 +146,7 @@ def emulate_game(data):
 		screen.fill(black)
 
 		if snake.move(apple):
-			apple = [random.randint(0, blocks[0]), random.randint(0, blocks[1])]  
+			apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
 		fill_block(screen, *apple, (255, 0, 0))
 
 		snake.draw_tail(screen)
