@@ -91,10 +91,10 @@ class Snake():
 
 
 
-
 def main():
 	moves = []
-	random.seed(0)
+	seed = random.randint(0, 10 ** 6)
+	random.seed(seed)
 	pygame.init()
 	screen = pygame.display.set_mode(size)
 	closed = False
@@ -112,19 +112,19 @@ def main():
 					gameover = True
 				else:
 					snake.redirect(directions[event.key])
+
 		moves.append(snake.direction)
 		screen.fill(black)
-		# draw code
 		if snake.move(apple):
 			apple = [random.randint(0, blocks[0]), random.randint(0, blocks[1])]  
 		fill_block(screen, *apple, (255, 0, 0))
 		snake.draw_tail(screen)
 		if snake.is_collided():
 			gameover = True
+
 		pygame.display.flip()
 		pygame.time.wait(1000 // speed)
-	return ({'seed': 0, 'moves': moves})
-
+	return {'seed': seed, 'moves': moves}
 
 def emulate_game(data):
 	random.seed(data['seed'])
@@ -137,7 +137,12 @@ def emulate_game(data):
 	snake = Snake()
 	while not gameover and not closed and i < len(data['moves']):
 
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				closed = True
+
 		snake.redirect(data['moves'][i])
+
 		screen.fill(black)
 
 		if snake.move(apple):
