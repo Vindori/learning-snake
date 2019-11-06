@@ -1,4 +1,4 @@
-import pygame
+from math import hypot
 import random
 import json
 import os
@@ -10,16 +10,14 @@ size = height, width = (800, 800)
 block_dims = (20, 20)
 blocks = (size[0] // block_dims[0], size[1] // block_dims[0])
 gap = 4 # Gap between snake blocks (even please)
-speed = 20 # Moves per second
-path = 'games/'
-filename = 'stored_game_{}.json'
+speed = 10 # Moves per second
 
-directions = {
-	pygame.K_LEFT: 0, # Left
-	pygame.K_RIGHT: 1, # Right
-	pygame.K_UP: 2, # Up
-	pygame.K_DOWN: 3, # Down
-}
+# directions = {
+# 	pygame.K_LEFT: 0, # Left
+# 	pygame.K_RIGHT: 1, # Right
+# 	pygame.K_UP: 2, # Up
+# 	pygame.K_DOWN: 3, # Down
+# }
 
 opposite = [1, 0, 3, 2]
 
@@ -40,6 +38,7 @@ def fill_block(screen, x1, y1, color=(255, 255, 255)):
 		w - gap
 	)
 	pygame.draw.rect(screen, color, rect)
+	# pygame.draw.circle(screen, color, (x1 + block_dims[0] // 2, y1 + block_dims[1] // 2), 10)
 
 def store_game(data):
 	i = 0
@@ -59,8 +58,8 @@ class Snake():
 		self.head = head
 		self.tail = [[self.head[0] - i, self.head[1]] for i in range(1, self.length)][::-1]
 		self.direction = direction
-		print(f'Head is in {self.head}')
-		print(f'Tail is {self.tail}')
+		# print(f'Head is in {self.head}')
+		# print(f'Tail is {self.tail}')
 		
 	def redirect(self, direction):
 		if self.direction != opposite[direction]:
@@ -94,73 +93,110 @@ class Snake():
 		fill_block(screen, *self.head, color)
 
 
+class Game():
 
-def main():
-	moves = []
-	seed = random.randint(0, 10 ** 6)
-	random.seed(seed)
-	pygame.init()
-	screen = pygame.display.set_mode(size)
-	closed = False
-	gameover = False
+	def __init__(self):
+		self.moves = []
+		self.breaker = 0
+		self.snake = Snake()
+		self.seed = random.randint(0, 10 ** 6)
+		self.apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
+		self.end = False
+		random.seed(self.seed)
 
-	apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
-	snake = Snake()
-	while not gameover and not closed:
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				closed = True
+	def export(self):
+		return json.dumps({'seed': self.seed, 'moves': self.moves})
 
-			if event.type == pygame.KEYDOWN and event.key in directions.keys():
-				if offset[directions[event.key]] == [-i for i in offset[snake.direction]]:
-					gameover = True
-				else:
-					snake.redirect(directions[event.key])
-
-		moves.append(snake.direction)
-		screen.fill(black)
-		if snake.move(apple):
-			apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]  
-		fill_block(screen, *apple, (255, 0, 0))
-		snake.draw_tail(screen)
-		if snake.is_collided():
-			gameover = True
-
-		pygame.display.flip()
-		pygame.time.wait(1000 // speed)
-	return {'seed': seed, 'moves': moves}
-
-def emulate_game(data):
-	random.seed(data['seed'])
-	pygame.init()
-	screen = pygame.display.set_mode(size)
-	closed = False
-	gameover = False
-	i = 0
-	apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
-	snake = Snake()
-	while not gameover and not closed and i < len(data['moves']):
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT:
-				closed = True
-
-		snake.redirect(data['moves'][i])
-
-		screen.fill(black)
-
-		if snake.move(apple):
-			apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
-		fill_block(screen, *apple, (255, 0, 0))
-
-		snake.draw_tail(screen)
+	def snake_vision(self):
+		"""
+		0 - top
+		1 - right
+		2 - bottom
+		3 - left
+		"""
+		apple = self.apple
+		snake_head = self.snake.head
+		left, top = snake_head
+		right, bottom = (j - i for i, j in zip(snake_head, blocks))
+		walls = [left, top, right, bottom]
+		tail = [0 for i in range(4)]
 		
-		if snake.is_collided():
-			gameover = True
-		pygame.display.flip()
-		pygame.time.wait(1000 // speed)
-		i += 1
+		for i in range(snake_head[1]):
+			if [snake_head[0], i] in self.snake.tail:
+				tail[0] = snake_head[1] - i
+
+		for i in range(snake_head[0] + 1, blocks[0]):
+			if [i, snake_head[1]] in self.snake.tail:
+				tail[1] = i - snake_head[0]
+				break
+		
+		for i in range(snake_head[1], blocks[1]):
+			if [snake_head[0], i] in self.snake.tail:
+				tail[2] = i - snake_head[1]
+				break
+
+		for i in range(snake_head[0]):
+			if [i, snake_head[1]] in self.snake.tail:
+				tail[3] = snake_head[0] - i
+
+		return apple + walls + tail
+
+	def no_viz(self, direction):
+		self.moves.append(direction)
+		self.breaker += 1
+		self.apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
+		self.snake.redirect(direction)
+		if self.snake.move(self.apple):
+			self.apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
+			self.breaker = 0
+
+		if self.snake.is_collided() or self.breaker > 50:
+			self.end = True
+
+		return self.snake.length
+
+
+
+	def play(self):
+		import pygame
+		moves = []
+		seed = self.seed
+		random.seed(seed)
+		pygame.init()
+		screen = pygame.display.set_mode(size)
+		closed = False
+		gameover = False
+
+		self.apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]
+		snake = self.snake
+		while not gameover and not closed:
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					closed = True
+
+				if event.type == pygame.KEYDOWN and event.key in directions.keys():
+					if offset[directions[event.key]] == [-i for i in offset[snake.direction]]:
+						gameover = True
+					else:
+						snake.redirect(directions[event.key])
+
+			moves.append(snake.direction)
+			screen.fill(black)
+			if snake.move(self.apple):
+				self.apple = [random.randint(0, blocks[0] - 1), random.randint(0, blocks[1] - 1)]  
+			fill_block(screen, *self.apple, (255, 0, 0))
+			snake.draw_tail(screen)
+			# print(self.snake_vision())
+			if snake.is_collided():
+				gameover = True
+				self.end = True
+			pygame.display.flip()
+			pygame.time.wait(1000 // speed)
+		return {'seed': seed, 'moves': moves}
+
+
 
 if __name__ == '__main__':
-	data = main()
-	store_game(data)
-	# emulate_game(data)
+	game = Game()
+	while not game.end:
+		game.no_viz(0)
